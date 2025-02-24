@@ -56,13 +56,23 @@ export default function BookingPage() {
     fetchSlots();
   }, []);
 
-  const availableDates = slots.map((slot) => slot.start.split("T")[0]);
+  // 🛠 Převod všech dostupných termínů na správný formát
+  const availableDates = slots.map((slot) =>
+    new Date(slot.start).toLocaleDateString("cs-CZ", { timeZone: "Europe/Prague" })
+  );
 
   const handleDateChange = (date: Date) => {
     setSelectedDate(date);
     if (!date) return;
 
-    const times = slots.filter((slot) => slot.start.startsWith(date.toISOString().split("T")[0]));
+    // 🛠 Porovnání dat v CET (Europe/Prague)
+    const selectedDateStr = date.toLocaleDateString("cs-CZ", { timeZone: "Europe/Prague" });
+
+    const times = slots.filter((slot) => {
+      const slotDate = new Date(slot.start).toLocaleDateString("cs-CZ", { timeZone: "Europe/Prague" });
+      return slotDate === selectedDateStr;
+    });
+
     setAvailableTimes(times);
     setSelectedTime(times.length > 0 ? times[0] : null);
   };
@@ -115,7 +125,9 @@ export default function BookingPage() {
           <Calendar
             onChange={handleDateChange}
             value={selectedDate}
-            tileDisabled={({ date }) => !availableDates.includes(date.toISOString().split("T")[0])}
+            tileDisabled={({ date }) =>
+              !availableDates.includes(date.toLocaleDateString("cs-CZ", { timeZone: "Europe/Prague" }))
+            }
             className="w-full"
           />
         </section>
@@ -135,14 +147,16 @@ export default function BookingPage() {
                   }`}
                   onClick={() => setSelectedTime(slot)}
                 >
-                  {new Date(slot.start).toLocaleTimeString([], {
+                  {new Date(slot.start).toLocaleTimeString("cs-CZ", {
                     hour: "2-digit",
                     minute: "2-digit",
+                    timeZone: "Europe/Prague",
                   })}
                   {" - "}
-                  {new Date(slot.end).toLocaleTimeString([], {
+                  {new Date(slot.end).toLocaleTimeString("cs-CZ", {
                     hour: "2-digit",
                     minute: "2-digit",
+                    timeZone: "Europe/Prague",
                   })}
                 </button>
               ))}
