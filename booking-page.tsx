@@ -32,18 +32,10 @@ export default function BookingPage() {
   useEffect(() => {
     async function fetchSlots() {
       try {
-        const response = await fetch("https://booking-backend-eight.vercel.app/", {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          mode: "cors",
-        });
-
+        const response = await fetch("https://booking-backend-eight.vercel.app/");
         if (!response.ok) {
           throw new Error("Nepodařilo se načíst volné termíny.");
         }
-
         const data = await response.json();
         console.log("Načtená data z backendu:", data);
         setSlots(data.terminy || []);
@@ -64,7 +56,6 @@ export default function BookingPage() {
     setSelectedTime(null);
     setSpecificTime(null);
     if (!date) return;
-
     const times = slots.filter((slot) => slot.start.startsWith(date.toISOString().split("T")[0]));
     setAvailableTimes(times);
   };
@@ -88,10 +79,8 @@ export default function BookingPage() {
         })}`,
         value: startTime.toISOString(),
       });
-
       startTime.setMinutes(startTime.getMinutes() + 30);
     }
-
     return timeSlots;
   };
 
@@ -141,57 +130,30 @@ export default function BookingPage() {
       <form onSubmit={handleSubmit}>
         <section className="mb-6">
           <h2 className="text-xl mb-2">Vyberte datum</h2>
-          <Calendar
-            onChange={handleDateChange}
-            value={selectedDate}
-            tileDisabled={({ date }) => !availableDates.includes(date.toISOString().split("T")[0])}
-            className="w-full"
-          />
+          <Calendar onChange={handleDateChange} value={selectedDate} className="w-full" />
         </section>
 
         {selectedDate && (
           <section className="mb-6">
             <h2 className="text-xl mb-2">Vyberte čas</h2>
-            <div className="flex flex-wrap gap-2">
+            <select className="w-full p-2 border rounded" onChange={(e) => setSelectedTime(JSON.parse(e.target.value))}>
+              <option value="">Vyberte dostupný čas</option>
               {availableTimes.map((slot) => (
-                <button
-                  type="button"
-                  key={slot.start}
-                  className={`px-4 py-2 rounded transition-colors ${
-                    selectedTime?.start === slot.start
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-secondary hover:bg-secondary/80"
-                  }`}
-                  onClick={() => setSelectedTime(slot)}
-                >
-                  {new Date(slot.start).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                  {" - "}
-                  {new Date(slot.end).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </button>
+                <option key={slot.start} value={JSON.stringify(slot)}>
+                  {new Date(slot.start).toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" })} - {new Date(slot.end).toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" })}
+                </option>
               ))}
-            </div>
+            </select>
           </section>
         )}
 
         {selectedTime && (
           <section className="mb-6">
             <h2 className="text-xl mb-2">Vyberte konkrétní čas</h2>
-            <select
-              className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-primary"
-              onChange={(e) => setSpecificTime(e.target.value)}
-              value={specificTime || ""}
-            >
+            <select className="w-full p-2 border rounded" onChange={(e) => setSpecificTime(e.target.value)}>
               <option value="">Vyberte čas</option>
               {generateTimeSlots(selectedTime.start, selectedTime.end).map((slot) => (
-                <option key={slot.value} value={slot.value}>
-                  {slot.label}
-                </option>
+                <option key={slot.value} value={slot.value}>{slot.label}</option>
               ))}
             </select>
           </section>
@@ -203,9 +165,7 @@ export default function BookingPage() {
             <input className="w-full p-2 border rounded" type="text" placeholder="Jméno" required />
             <input className="w-full p-2 border rounded" type="email" placeholder="E-mail" required />
             <input className="w-full p-2 border rounded" type="text" placeholder="Typ střihu" required />
-            <button type="submit" className="w-full p-2 bg-primary text-white rounded">
-              Potvrdit rezervaci
-            </button>
+            <button type="submit" className="w-full p-2 bg-primary text-white rounded">Potvrdit rezervaci</button>
           </section>
         )}
       </form>
