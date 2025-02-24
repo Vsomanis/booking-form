@@ -22,7 +22,6 @@ export default function BookingPage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [availableTimes, setAvailableTimes] = useState<Slot[]>([]);
   const [selectedTime, setSelectedTime] = useState<Slot | null>(null);
-  const [specificTime, setSpecificTime] = useState<string | null>(null);
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo>({
     name: "",
     email: "",
@@ -57,48 +56,20 @@ export default function BookingPage() {
     fetchSlots();
   }, []);
 
-  // ✅ Seznam dostupných dnů pro výběr v kalendáři
   const availableDates = new Set(slots.map((slot) => slot.start.split("T")[0]));
 
   const handleDateChange = (date: Date) => {
     setSelectedDate(date);
     setSelectedTime(null);
-    setSpecificTime(null);
     if (!date) return;
 
     const times = slots.filter((slot) => slot.start.startsWith(date.toISOString().split("T")[0]));
     setAvailableTimes(times);
   };
 
-  const generateTimeSlots = (start: string, end: string) => {
-    const startTime = new Date(start);
-    const endTime = new Date(end);
-    const timeSlots = [];
-
-    while (startTime < endTime) {
-      const nextTime = new Date(startTime.getTime() + 30 * 60 * 1000); // 30 minutové bloky
-      if (nextTime > endTime) break;
-
-      timeSlots.push({
-        label: `${startTime.toLocaleTimeString("cs-CZ", {
-          hour: "2-digit",
-          minute: "2-digit",
-        })} - ${nextTime.toLocaleTimeString("cs-CZ", {
-          hour: "2-digit",
-          minute: "2-digit",
-        })}`,
-        value: startTime.toISOString(),
-      });
-
-      startTime.setMinutes(startTime.getMinutes() + 30);
-    }
-
-    return timeSlots;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedTime || !specificTime) {
+    if (!selectedTime) {
       setError("Vyberte čas.");
       return;
     }
@@ -115,7 +86,7 @@ export default function BookingPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          slot: { start: specificTime, end: new Date(new Date(specificTime).getTime() + 30 * 60 * 1000).toISOString() },
+          slot: selectedTime,
           customerInfo,
         }),
       });
@@ -126,7 +97,6 @@ export default function BookingPage() {
 
       setSelectedDate(null);
       setSelectedTime(null);
-      setSpecificTime(null);
       setCustomerInfo({ name: "", email: "", haircut: "" });
       alert("Rezervace úspěšná!");
     } catch (error) {
@@ -184,24 +154,6 @@ export default function BookingPage() {
         )}
 
         {selectedTime && (
-          <section className="mb-6">
-            <h2 className="text-xl mb-2">Vyberte konkrétní čas</h2>
-            <select
-              className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-primary"
-              onChange={(e) => setSpecificTime(e.target.value)}
-              value={specificTime || ""}
-            >
-              <option value="">Vyberte čas</option>
-              {generateTimeSlots(selectedTime.start, selectedTime.end).map((slot) => (
-                <option key={slot.value} value={slot.value}>
-                  {slot.label}
-                </option>
-              ))}
-            </select>
-          </section>
-        )}
-
-        {specificTime && (
           <section className="space-y-4">
             <h2 className="text-xl mb-2">O Vás</h2>
             <input className="w-full p-2 border rounded" type="text" placeholder="Jméno" required />
