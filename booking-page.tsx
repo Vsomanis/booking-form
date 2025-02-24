@@ -31,7 +31,7 @@ export default function BookingPage() {
   useEffect(() => {
     async function fetchSlots() {
       try {
-        const response = await fetch("https://booking-backend-dj8twkyre-vsomanis-projects.vercel.app/", {
+        const response = await fetch("https://booking-backend-eight.vercel.app/", {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
