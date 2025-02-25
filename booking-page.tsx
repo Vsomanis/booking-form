@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 
-// Typy pro rezervace
 type Slot = {
   start: string;
   end: string;
@@ -30,13 +29,14 @@ export default function BookingPage() {
   const [selectedTime, setSelectedTime] = useState<Slot | null>(null);
   const [haircuts, setHaircuts] = useState<HaircutOption[]>([]);
   const [selectedHaircut, setSelectedHaircut] = useState<HaircutOption | null>(null);
+
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo>({
     name: "",
     email: "",
     haircut: "",
   });
 
-  // Načítání dostupných termínů
+  // Načítání dostupných termínů z backendu
   useEffect(() => {
     async function fetchSlots() {
       try {
@@ -45,14 +45,16 @@ export default function BookingPage() {
           throw new Error("Nepodařilo se načíst volné termíny.");
         }
         const data = await response.json();
-        
-        // Filtrace pro dnešní a budoucí termíny
+
+        console.log("Načtené termíny z backendu:", data); // Debugging
+
         const today = new Date().toISOString().split("T")[0];
         const validSlots = data.terminy.filter((slot: Slot) => {
           const slotDate = new Date(slot.start).toISOString().split("T")[0];
           return slotDate >= today;
         });
 
+        console.log("Platné termíny po filtraci:", validSlots); // Debugging
         setSlots(validSlots);
       } catch (error) {
         setError("Nepodařilo se načíst dostupné termíny. Zkuste to znovu.");
@@ -80,11 +82,19 @@ export default function BookingPage() {
     fetchHaircuts();
   }, []);
 
+  // ** OPRAVA CHYBY ** - dostupná data
   const availableDates = new Set(
     slots.map((slot) => new Date(slot.start).toISOString().split("T")[0])
   );
 
+  console.log("Dostupná data v kalendáři:", availableDates); // Debugging
+
   const handleDateChange = (date: Date) => {
+    const dateString = date.toISOString().split("T")[0];
+    if (!availableDates.has(dateString)) {
+      console.warn("Toto datum není dostupné:", dateString); // Debugging
+      return;
+    }
     setSelectedDate(date);
     setSelectedTime(null);
     setAvailableTimes([]);
@@ -155,7 +165,9 @@ export default function BookingPage() {
             <select className="w-full p-2 border rounded">
               <option value="">Vyberte čas</option>
               {availableTimes.map((slot) => (
-                <option key={slot.start} value={slot.start}>{new Date(slot.start).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</option>
+                <option key={slot.start} value={slot.start}>
+                  {new Date(slot.start).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                </option>
               ))}
             </select>
           </section>
