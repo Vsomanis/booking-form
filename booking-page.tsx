@@ -72,6 +72,8 @@ export default function BookingPage() {
     fetchHaircuts();
   }, []);
 
+  const availableDates = new Set(slots.map((slot) => slot.start.split("T")[0]));
+
   const handleDateChange = (date: Date) => {
     setSelectedDate(date);
     setSelectedTime(null);
@@ -109,37 +111,17 @@ export default function BookingPage() {
     return available;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedTime || !selectedHaircut || !customerInfo.name || !customerInfo.email) {
-      setError("Vyplňte všechna pole.");
-      return;
-    }
-
-    try {
-      const response = await fetch("https://booking-backend-eight.vercel.app/book", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slot: selectedTime, customerInfo }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Rezervace se nezdařila.");
-      }
-
-      alert("Rezervace úspěšná!");
-    } catch (error) {
-      setError("Nepodařilo se vytvořit rezervaci. Zkuste to znovu.");
-    }
-  };
-
   return (
     <div className="container mx-auto p-4 max-w-2xl">
       <h1 className="text-2xl font-bold mb-6">Rezervace termínu</h1>
-      <form onSubmit={handleSubmit}>
+      <form>
         <section className="mb-6">
           <h2 className="text-xl mb-2">Vyberte datum</h2>
-          <Calendar onChange={handleDateChange} value={selectedDate} />
+          <Calendar 
+            onChange={handleDateChange} 
+            value={selectedDate} 
+            tileDisabled={({ date }) => !availableDates.has(date.toISOString().split("T")[0])}
+          />
         </section>
 
         {selectedDate && (
@@ -157,23 +139,12 @@ export default function BookingPage() {
         {selectedHaircut && availableTimes.length > 0 && (
           <section className="mb-6">
             <h2 className="text-xl mb-2">Vyberte čas</h2>
-            <select className="w-full p-2 border rounded" onChange={(e) => setSelectedTime(JSON.parse(e.target.value))}>
+            <select className="w-full p-2 border rounded">
               <option value="">Vyberte čas</option>
               {availableTimes.map((slot) => (
-                <option key={slot.start} value={JSON.stringify(slot)}>
-                  {new Date(slot.start).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                </option>
+                <option key={slot.start} value={slot.start}>{new Date(slot.start).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</option>
               ))}
             </select>
-          </section>
-        )}
-
-        {selectedTime && (
-          <section className="space-y-4">
-            <h2 className="text-xl mb-2">O Vás</h2>
-            <input className="w-full p-2 border rounded" type="text" placeholder="Jméno" required />
-            <input className="w-full p-2 border rounded" type="email" placeholder="E-mail" required />
-            <button type="submit" className="w-full p-2 bg-primary text-white rounded">Potvrdit rezervaci</button>
           </section>
         )}
       </form>
