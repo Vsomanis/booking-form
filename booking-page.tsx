@@ -46,7 +46,7 @@ export default function BookingPage() {
         const data = await response.json();
         const today = new Date().toISOString().split("T")[0];
         const validSlots = data.terminy.filter((slot: Slot) => {
-          const slotDate = new Date(slot.start).toISOString().split("T")[0];
+          const slotDate = slot.start.split("T")[0];
           return slotDate >= today;
         });
         setSlots(validSlots);
@@ -76,11 +76,11 @@ export default function BookingPage() {
   }, []);
 
   const availableDates = new Set(
-    slots.map((slot) => new Date(slot.start).toLocaleDateString("cs-CZ", { timeZone: "Europe/Prague" }).split("T")[0])
+    slots.map((slot) => slot.start.split("T")[0])
   );
 
   const handleDateChange = (date: Date) => {
-    const dateString = date.toLocaleDateString("cs-CZ", { timeZone: "Europe/Prague" }).split("T")[0];
+    const dateString = date.toISOString().split("T")[0];
     if (!availableDates.has(dateString)) {
       return;
     }
@@ -92,8 +92,9 @@ export default function BookingPage() {
   const generateAvailableTimes = (duration: number): Slot[] => {
     if (!selectedDate) return [];
 
-    const dateStr = selectedDate.toLocaleDateString("cs-CZ", { timeZone: "Europe/Prague" }).split("T")[0];
-    const daySlots = slots.filter(slot => slot.start.startsWith(dateStr));
+    const dateStr = selectedDate.toISOString().split("T")[0];
+    const daySlots = slots.filter(slot => slot.start.split("T")[0] === dateStr);
+
     let available: Slot[] = [];
 
     daySlots.forEach(slot => {
@@ -106,10 +107,12 @@ export default function BookingPage() {
           start: startTime.toISOString(),
           end: slotEnd.toISOString(),
         });
+
         startTime = new Date(startTime.getTime() + 30 * 60000); // Posun o 30 min
       }
     });
 
+    console.log("📅 Dostupné časy:", available); // Debugging
     return available;
   };
 
@@ -119,6 +122,7 @@ export default function BookingPage() {
 
     if (haircut && selectedDate) {
       const times = generateAvailableTimes(haircut.duration);
+      console.log("🕒 Nastavuji dostupné časy:", times); // Debugging
       setAvailableTimes(times);
     }
   };
@@ -133,7 +137,7 @@ export default function BookingPage() {
             onChange={handleDateChange} 
             value={selectedDate} 
             tileDisabled={({ date }) => {
-              const dateString = date.toLocaleDateString("cs-CZ", { timeZone: "Europe/Prague" }).split("T")[0];
+              const dateString = date.toISOString().split("T")[0];
               return !availableDates.has(dateString);
             }}
           />
