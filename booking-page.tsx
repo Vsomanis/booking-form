@@ -45,7 +45,15 @@ export default function BookingPage() {
           throw new Error("Nepodařilo se načíst volné termíny.");
         }
         const data = await response.json();
-        setSlots(data.terminy || []);
+        
+        // Filtrace pro dnešní a budoucí termíny
+        const today = new Date().toISOString().split("T")[0];
+        const validSlots = data.terminy.filter((slot: Slot) => {
+          const slotDate = new Date(slot.start).toISOString().split("T")[0];
+          return slotDate >= today;
+        });
+
+        setSlots(validSlots);
       } catch (error) {
         setError("Nepodařilo se načíst dostupné termíny. Zkuste to znovu.");
       } finally {
@@ -72,7 +80,9 @@ export default function BookingPage() {
     fetchHaircuts();
   }, []);
 
-  const availableDates = new Set(slots.map((slot) => slot.start.split("T")[0]));
+  const availableDates = new Set(
+    slots.map((slot) => new Date(slot.start).toISOString().split("T")[0])
+  );
 
   const handleDateChange = (date: Date) => {
     setSelectedDate(date);
@@ -120,7 +130,10 @@ export default function BookingPage() {
           <Calendar 
             onChange={handleDateChange} 
             value={selectedDate} 
-            tileDisabled={({ date }) => !availableDates.has(date.toISOString().split("T")[0])}
+            tileDisabled={({ date }) => {
+              const dateString = date.toISOString().split("T")[0];
+              return !availableDates.has(dateString);
+            }}
           />
         </section>
 
