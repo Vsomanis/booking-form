@@ -36,7 +36,6 @@ export default function BookingPage() {
     haircut: "",
   });
 
-  // Načítání dostupných termínů z backendu
   useEffect(() => {
     async function fetchSlots() {
       try {
@@ -45,16 +44,11 @@ export default function BookingPage() {
           throw new Error("Nepodařilo se načíst volné termíny.");
         }
         const data = await response.json();
-
-        console.log("Načtené termíny z backendu:", data); // Debugging
-
         const today = new Date().toISOString().split("T")[0];
         const validSlots = data.terminy.filter((slot: Slot) => {
           const slotDate = new Date(slot.start).toISOString().split("T")[0];
           return slotDate >= today;
         });
-
-        console.log("Platné termíny po filtraci:", validSlots); // Debugging
         setSlots(validSlots);
       } catch (error) {
         setError("Nepodařilo se načíst dostupné termíny. Zkuste to znovu.");
@@ -65,7 +59,6 @@ export default function BookingPage() {
     fetchSlots();
   }, []);
 
-  // Načítání seznamu střihů
   useEffect(() => {
     async function fetchHaircuts() {
       try {
@@ -82,17 +75,13 @@ export default function BookingPage() {
     fetchHaircuts();
   }, []);
 
-  // ** OPRAVA CHYBY ** - dostupná data
   const availableDates = new Set(
     slots.map((slot) => new Date(slot.start).toISOString().split("T")[0])
   );
 
-  console.log("Dostupná data v kalendáři:", availableDates); // Debugging
-
   const handleDateChange = (date: Date) => {
     const dateString = date.toISOString().split("T")[0];
     if (!availableDates.has(dateString)) {
-      console.warn("Toto datum není dostupné:", dateString); // Debugging
       return;
     }
     setSelectedDate(date);
@@ -123,7 +112,10 @@ export default function BookingPage() {
 
       while (startTime.getTime() + duration * 60000 <= endTime.getTime()) {
         const slotEnd = new Date(startTime.getTime() + duration * 60000);
-        available.push({ start: startTime.toISOString(), end: slotEnd.toISOString() });
+        available.push({
+          start: startTime.toISOString(),
+          end: slotEnd.toISOString(),
+        });
         startTime = new Date(slotEnd);
       }
     });
@@ -166,7 +158,7 @@ export default function BookingPage() {
               <option value="">Vyberte čas</option>
               {availableTimes.map((slot) => (
                 <option key={slot.start} value={slot.start}>
-                  {new Date(slot.start).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  {new Date(slot.start).toLocaleTimeString("cs-CZ", { timeZone: "Europe/Prague", hour: "2-digit", minute: "2-digit" })}
                 </option>
               ))}
             </select>
