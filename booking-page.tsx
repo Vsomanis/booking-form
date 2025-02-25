@@ -76,11 +76,11 @@ export default function BookingPage() {
   }, []);
 
   const availableDates = new Set(
-    slots.map((slot) => new Date(slot.start).toISOString().split("T")[0])
+    slots.map((slot) => new Date(slot.start).toLocaleDateString("cs-CZ", { timeZone: "Europe/Prague" }).split("T")[0])
   );
 
   const handleDateChange = (date: Date) => {
-    const dateString = date.toISOString().split("T")[0];
+    const dateString = date.toLocaleDateString("cs-CZ", { timeZone: "Europe/Prague" }).split("T")[0];
     if (!availableDates.has(dateString)) {
       return;
     }
@@ -102,8 +102,8 @@ export default function BookingPage() {
   const generateAvailableTimes = (duration: number): Slot[] => {
     if (!selectedDate) return [];
 
-    const dateStr = selectedDate.toISOString().split("T")[0];
-    const daySlots = slots.filter((slot) => slot.start.startsWith(dateStr));
+    const dateStr = selectedDate.toLocaleDateString("cs-CZ", { timeZone: "Europe/Prague" }).split("T")[0];
+    const daySlots = slots.filter((slot) => new Date(slot.start).toLocaleDateString("cs-CZ", { timeZone: "Europe/Prague" }).startsWith(dateStr));
     let available: Slot[] = [];
 
     daySlots.forEach((slot) => {
@@ -133,7 +133,7 @@ export default function BookingPage() {
             onChange={handleDateChange} 
             value={selectedDate} 
             tileDisabled={({ date }) => {
-              const dateString = date.toISOString().split("T")[0];
+              const dateString = date.toLocaleDateString("cs-CZ", { timeZone: "Europe/Prague" }).split("T")[0];
               return !availableDates.has(dateString);
             }}
           />
