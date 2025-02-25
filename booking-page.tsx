@@ -137,7 +137,7 @@ export default function BookingPage() {
       čas: selectedTime.start,
     });
 
-    alert(`Rezervace potvrzena na ${new Date(selectedTime.start).toLocaleTimeString("cs-CZ")}`);
+    alert(`Rezervace potvrzena na ${new Date(selectedTime.start).toLocaleTimeString("cs-CZ", { timeZone: "Europe/Prague", hour: "2-digit", minute: "2-digit" })}`);
   };
 
   return (
@@ -178,7 +178,7 @@ export default function BookingPage() {
               <option value="">Vyberte čas příchodu</option>
               {availableTimes.map((slot) => (
                 <option key={slot.start} value={slot.start}>
-                  {new Date(slot.start).toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" })}
+                  {new Date(slot.start).toLocaleTimeString("cs-CZ", { timeZone: "Europe/Prague", hour: "2-digit", minute: "2-digit" })}
                 </option>
               ))}
             </select>
@@ -207,13 +207,15 @@ export default function BookingPage() {
               />
             </section>
 
-            <button 
-              type="button" 
-              className="w-full bg-blue-500 text-white p-3 rounded hover:bg-blue-600"
-              onClick={handleReservation}
-            >
-              Zarezervovat
-            </button>
+            <div className="mt-4">
+              <button 
+                type="button" 
+                className="w-full bg-blue-500 text-white p-3 rounded hover:bg-blue-600"
+                onClick={handleReservation}
+              >
+                Zarezervovat
+              </button>
+            </div>
           </>
         )}
       </form>
