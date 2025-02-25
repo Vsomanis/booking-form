@@ -12,7 +12,6 @@ type Slot = {
 type CustomerInfo = {
   name: string;
   email: string;
-  haircut: string;
 };
 
 type HaircutOption = {
@@ -33,7 +32,6 @@ export default function BookingPage() {
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo>({
     name: "",
     email: "",
-    haircut: "",
   });
 
   useEffect(() => {
@@ -44,9 +42,9 @@ export default function BookingPage() {
           throw new Error("Nepodařilo se načíst volné termíny.");
         }
         const data = await response.json();
-        const today = new Date().toLocaleDateString("cs-CZ", { timeZone: "Europe/Prague" });
+        const today = new Date().toISOString().split("T")[0];
         const validSlots = data.terminy.filter((slot: Slot) => {
-          const slotDate = new Date(slot.start).toLocaleDateString("cs-CZ", { timeZone: "Europe/Prague" });
+          const slotDate = new Date(slot.start).toISOString().split("T")[0];
           return slotDate >= today;
         });
         setSlots(validSlots);
@@ -76,11 +74,11 @@ export default function BookingPage() {
   }, []);
 
   const availableDates = new Set(
-    slots.map((slot) => new Date(slot.start).toLocaleDateString("cs-CZ", { timeZone: "Europe/Prague" }).split("T")[0])
+    slots.map((slot) => new Date(slot.start).toISOString().split("T")[0])
   );
 
   const handleDateChange = (date: Date) => {
-    const dateString = date.toLocaleDateString("cs-CZ", { timeZone: "Europe/Prague" }).split("T")[0];
+    const dateString = date.toISOString().split("T")[0];
     if (!availableDates.has(dateString)) {
       return;
     }
@@ -92,8 +90,8 @@ export default function BookingPage() {
   const generateAvailableTimes = (duration: number): Slot[] => {
     if (!selectedDate) return [];
 
-    const dateStr = selectedDate.toLocaleDateString("cs-CZ", { timeZone: "Europe/Prague" }).split("T")[0];
-    const daySlots = slots.filter(slot => new Date(slot.start).toLocaleDateString("cs-CZ", { timeZone: "Europe/Prague" }).split("T")[0] === dateStr);
+    const dateStr = selectedDate.toISOString().split("T")[0];
+    const daySlots = slots.filter(slot => slot.start.split("T")[0] === dateStr);
 
     let available: Slot[] = [];
 
@@ -112,7 +110,6 @@ export default function BookingPage() {
       }
     });
 
-    console.log("📅 Dostupné časy:", available); // Debugging
     return available;
   };
 
@@ -122,9 +119,25 @@ export default function BookingPage() {
 
     if (haircut && selectedDate) {
       const times = generateAvailableTimes(haircut.duration);
-      console.log("🕒 Nastavuji dostupné časy:", times); // Debugging
       setAvailableTimes(times);
     }
+  };
+
+  const handleReservation = () => {
+    if (!customerInfo.name || !customerInfo.email || !selectedHaircut || !selectedTime) {
+      alert("Vyplňte všechna pole!");
+      return;
+    }
+
+    // Odeslat rezervaci (můžeš upravit API endpoint)
+    console.log("📅 Rezervace odeslána:", {
+      jméno: customerInfo.name,
+      email: customerInfo.email,
+      střih: selectedHaircut.name,
+      čas: selectedTime.start,
+    });
+
+    alert(`Rezervace potvrzena na ${new Date(selectedTime.start).toLocaleTimeString("cs-CZ")}`);
   };
 
   return (
@@ -137,7 +150,7 @@ export default function BookingPage() {
             onChange={handleDateChange} 
             value={selectedDate} 
             tileDisabled={({ date }) => {
-              const dateString = date.toLocaleDateString("cs-CZ", { timeZone: "Europe/Prague" }).split("T")[0];
+              const dateString = date.toISOString().split("T")[0];
               return !availableDates.has(dateString);
             }}
           />
@@ -157,16 +170,51 @@ export default function BookingPage() {
 
         {selectedHaircut && availableTimes.length > 0 && (
           <section className="mb-6">
-            <h2 className="text-xl mb-2">Vyberte čas</h2>
-            <select className="w-full p-2 border rounded">
-              <option value="">Vyberte čas</option>
+            <h2 className="text-xl mb-2">Vyberte čas příchodu</h2>
+            <select className="w-full p-2 border rounded" onChange={(e) => {
+              const selectedSlot = availableTimes.find(slot => slot.start === e.target.value) || null;
+              setSelectedTime(selectedSlot);
+            }}>
+              <option value="">Vyberte čas příchodu</option>
               {availableTimes.map((slot) => (
                 <option key={slot.start} value={slot.start}>
-                  {new Date(slot.start).toLocaleTimeString("cs-CZ", { timeZone: "Europe/Prague", hour: "2-digit", minute: "2-digit" })}
+                  {new Date(slot.start).toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" })}
                 </option>
               ))}
             </select>
           </section>
+        )}
+
+        {selectedTime && (
+          <>
+            <section className="mb-6">
+              <h2 className="text-xl mb-2">Vaše jméno</h2>
+              <input 
+                type="text" 
+                className="w-full p-2 border rounded"
+                value={customerInfo.name}
+                onChange={(e) => setCustomerInfo({ ...customerInfo, name: e.target.value })}
+              />
+            </section>
+
+            <section className="mb-6">
+              <h2 className="text-xl mb-2">Váš email</h2>
+              <input 
+                type="email" 
+                className="w-full p-2 border rounded"
+                value={customerInfo.email}
+                onChange={(e) => setCustomerInfo({ ...customerInfo, email: e.target.value })}
+              />
+            </section>
+
+            <button 
+              type="button" 
+              className="w-full bg-blue-500 text-white p-3 rounded hover:bg-blue-600"
+              onClick={handleReservation}
+            >
+              Zarezervovat
+            </button>
+          </>
         )}
       </form>
     </div>
