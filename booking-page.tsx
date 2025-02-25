@@ -89,24 +89,14 @@ export default function BookingPage() {
     setAvailableTimes([]);
   };
 
-  const handleHaircutChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const haircut = haircuts.find((h) => h.name === event.target.value) || null;
-    setSelectedHaircut(haircut);
-
-    if (haircut && selectedDate) {
-      const times = generateAvailableTimes(haircut.duration);
-      setAvailableTimes(times);
-    }
-  };
-
   const generateAvailableTimes = (duration: number): Slot[] => {
     if (!selectedDate) return [];
 
     const dateStr = selectedDate.toLocaleDateString("cs-CZ", { timeZone: "Europe/Prague" }).split("T")[0];
-    const daySlots = slots.filter((slot) => new Date(slot.start).toLocaleDateString("cs-CZ", { timeZone: "Europe/Prague" }).startsWith(dateStr));
+    const daySlots = slots.filter(slot => slot.start.startsWith(dateStr));
     let available: Slot[] = [];
 
-    daySlots.forEach((slot) => {
+    daySlots.forEach(slot => {
       let startTime = new Date(slot.start);
       let endTime = new Date(slot.end);
 
@@ -116,11 +106,21 @@ export default function BookingPage() {
           start: startTime.toISOString(),
           end: slotEnd.toISOString(),
         });
-        startTime = new Date(slotEnd);
+        startTime = new Date(startTime.getTime() + 30 * 60000); // Posun o 30 min
       }
     });
 
     return available;
+  };
+
+  const handleHaircutChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const haircut = haircuts.find((h) => h.name === event.target.value) || null;
+    setSelectedHaircut(haircut);
+
+    if (haircut && selectedDate) {
+      const times = generateAvailableTimes(haircut.duration);
+      setAvailableTimes(times);
+    }
   };
 
   return (
