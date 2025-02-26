@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
+import { DateTime } from "luxon";
 
 type Slot = {
   start: string;
@@ -60,12 +61,11 @@ export default function BookingPage() {
       console.log("Načtené termíny z API:", data.terminy);
       
       // Filtrování termínů od dnešního dne
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      const today = DateTime.now().startOf('day');
       
       const validSlots = data.terminy.filter((slot: Slot) => {
         // Parse date with timezone info preserved
-        const slotDate = new Date(slot.start);
+        const slotDate = parseLocalDate(slot.start);
         return slotDate >= today;
       });
       
@@ -74,8 +74,8 @@ export default function BookingPage() {
       // Resetování výběru, pokud se znovu načítají data
       if (selectedDate) {
         const stillValidDate = validSlots.some(slot => {
-          const slotDateStr = parseLocalDate(slot.start).toISOString().split("T")[0];
-          const selectedDateStr = selectedDate.toISOString().split("T")[0];
+          const slotDateStr = parseLocalDate(slot.start).toFormat("yyyy-MM-dd");
+          const selectedDateStr = DateTime.fromJSDate(selectedDate).toFormat("yyyy-MM-dd");
           return slotDateStr === selectedDateStr;
         });
         
@@ -131,15 +131,15 @@ export default function BookingPage() {
     fetchHaircuts();
   }, []);
   
-  // Pomocná funkce pro parsování lokálního data z ISO řetězce
-  const parseLocalDate = (isoString: string): Date => {
-    // Vytvoření data se zachováním časové zóny
-    return new Date(isoString);
+  // Pomocná funkce pro parsování lokálního data z ISO řetězce pomocí Luxonu
+  const parseLocalDate = (isoString: string): DateTime => {
+    // Vytvoření DateTime objektu z ISO stringu s předpokladem, že čas je v pražské časové zóně
+    return DateTime.fromISO(isoString, { zone: "Europe/Prague" });
   };
   
   // Získání data bez času (pro porovnání dnů)
   const getDateString = (date: Date): string => {
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    return DateTime.fromJSDate(date).toFormat("yyyy-MM-dd");
   };
 
   // Vytvoření setu dostupných datumů pro kalendář
@@ -148,7 +148,7 @@ export default function BookingPage() {
     
     slots.forEach(slot => {
       const date = parseLocalDate(slot.start);
-      dates.add(getDateString(date));
+      dates.add(date.toFormat("yyyy-MM-dd"));
     });
     
     return dates;
@@ -157,9 +157,8 @@ export default function BookingPage() {
   const availableDates = getAvailableDates();
 
   const handleDateChange = (date: Date) => {
-    // Normalize date to midnight in local timezone
-    const normalizedDate = new Date(date);
-    normalizedDate.setHours(0, 0, 0, 0);
+    // Normalize date to midnight in local timezone using Luxon
+    const normalizedDate = DateTime.fromJSDate(date).startOf('day').toJSDate();
     
     const dateString = getDateString(normalizedDate);
     if (!availableDates.has(dateString)) {
@@ -172,17 +171,17 @@ export default function BookingPage() {
     setApiError(null);
   };
 
-  // Generování dostupných časů na základě délky střihu
+  // Generování dostupných časů na základě délky střihu s využitím Luxonu
   const generateAvailableTimes = (duration: number): Slot[] => {
     if (!selectedDate) return [];
 
-    // Get the date string in local format
+    // Get the date string in format yyyy-MM-dd
     const selectedDateStr = getDateString(selectedDate);
     
     // Filtrace slotů pro vybraný den
     const daySlots = slots.filter(slot => {
       const slotDate = parseLocalDate(slot.start);
-      return getDateString(slotDate) === selectedDateStr;
+      return slotDate.toFormat("yyyy-MM-dd") === selectedDateStr;
     });
 
     let available: Slot[] = [];
@@ -191,23 +190,23 @@ export default function BookingPage() {
       let startTime = parseLocalDate(slot.start);
       let endTime = parseLocalDate(slot.end);
 
-      while (startTime.getTime() + duration * 60000 <= endTime.getTime()) {
-        const slotEnd = new Date(startTime.getTime() + duration * 60000);
+      while (startTime.plus({ minutes: duration }) <= endTime) {
+        const slotEnd = startTime.plus({ minutes: duration });
         
         available.push({
-          start: startTime.toISOString(),
-          end: slotEnd.toISOString(),
+          start: startTime.toISO() || "",
+          end: slotEnd.toISO() || "",
           event_id: slot.event_id
         });
 
         // Posun o 30 minut
-        startTime = new Date(startTime.getTime() + 30 * 60000);
+        startTime = startTime.plus({ minutes: 30 });
       }
     });
 
     // Seřadit dostupné časy
     return available.sort((a, b) => 
-      parseLocalDate(a.start).getTime() - parseLocalDate(b.start).getTime()
+      parseLocalDate(a.start).toMillis() - parseLocalDate(b.start).toMillis()
     );
   };
 
@@ -223,22 +222,14 @@ export default function BookingPage() {
     }
   };
 
-  // Formátování času pro zobrazení v Europe/Prague
+  // Formátování času pro zobrazení v Europe/Prague pomocí Luxonu
   const formatTimeForDisplay = (isoString: string): string => {
-    const date = parseLocalDate(isoString);
-    return date.toLocaleTimeString("cs-CZ", {
-      hour: "2-digit",
-      minute: "2-digit"
-    });
+    return parseLocalDate(isoString).toFormat("HH:mm");
   };
 
   // Formátování data pro zobrazení
   const formatDateForDisplay = (date: Date): string => {
-    return date.toLocaleDateString("cs-CZ", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric"
-    });
+    return DateTime.fromJSDate(date).toFormat("dd.MM.yyyy");
   };
 
   const handleReservation = async () => {
