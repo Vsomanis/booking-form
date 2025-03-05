@@ -26,6 +26,25 @@ type ApiError = {
   message: string;
 };
 
+const API_URL = "https://booking-backend-eight.vercel.app";
+
+export const bookAppointment = async (data: any) => {
+  const response = await fetch(`${API_URL}/book`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-API-KEY": process.env.NEXT_PUBLIC_API_SECRET_KEY, // API klíč z env proměnné
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    throw new Error("Chyba při rezervaci");
+  }
+
+  return await response.json();
+};
+
 export default function BookingPage() {
   const [slots, setSlots] = useState<Slot[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,9 +61,6 @@ export default function BookingPage() {
     name: "",
     email: "",
   });
-
-  // API adresa pro backend
-  const API_URL = "https://booking-backend-eight.vercel.app";
 
   // Funkce pro načtení dostupných termínů
   const fetchSlots = async () => {
@@ -265,40 +281,7 @@ export default function BookingPage() {
       console.log("Odesílám rezervaci:", bookingData);
 
       // Odeslání rezervace na API
-      const response = await fetch(`${API_URL}/book`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(bookingData),
-      });
-
-      const responseData = await response.json();
-
-      if (!response.ok) {
-        // Detailní zpracování různých typů chyb
-        let errorMessage = "Nepodařilo se odeslat rezervaci.";
-        
-        if (response.status === 404) {
-          errorMessage = "Zvolený termín již není dostupný. Vyberte prosím jiný čas.";
-        } else if (response.status === 500) {
-          errorMessage = "Server nemohl zpracovat váš požadavek. Zkuste to později.";
-        } else if (responseData.detail) {
-          errorMessage = responseData.detail;
-        }
-        
-        setApiError({
-          status: response.status,
-          message: errorMessage
-        });
-        
-        // Znovu načíst dostupné termíny, pokud došlo k chybě kvůli neaktuálním datům
-        if (response.status === 404) {
-          await fetchSlots();
-        }
-        
-        return;
-      }
+      const response = await bookAppointment(bookingData);
 
       // Úspěšná rezervace
       alert(`Rezervace potvrzena na ${formatDateForDisplay(selectedDate!)} v ${formatTimeForDisplay(selectedTime.start)}`);
