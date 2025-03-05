@@ -253,6 +253,55 @@ export default function BookingPage() {
       alert("Vyplňte všechna pole!");
       return;
     }
+  
+    setSubmitting(true);
+    setApiError(null);
+  
+    try {
+      const bookingData = {
+        slot: {
+          start: selectedTime.start,
+          end: selectedTime.end,
+        },
+        customerInfo: {
+          name: customerInfo.name,
+          email: customerInfo.email,
+          haircut: selectedHaircut.name,
+        },
+      };
+  
+      console.log("Odesílám rezervaci:", bookingData);
+  
+      const response = await bookAppointment(bookingData);
+  
+      alert(`Rezervace potvrzena na ${formatDateForDisplay(selectedDate!)} v ${formatTimeForDisplay(selectedTime.start)}`);
+  
+      setSelectedDate(null);
+      setSelectedTime(null);
+      setSelectedHaircut(null);
+      setAvailableTimes([]);
+      setCustomerInfo({ name: "", email: "" });
+  
+      await fetchSlots();
+      
+    } catch (error: any) {
+      console.error("Chyba při odesílání rezervace:", error);
+  
+      if (error.response?.status === 429) {
+        setApiError({
+          status: 429,
+          message: "Příliš mnoho rezervací. Prosím, počkejte 60 minut a zkuste to znovu.",
+        });
+      } else {
+        setApiError({
+          status: error.response?.status || 0,
+          message: error.response?.data?.message || "Nepodařilo se odeslat rezervaci.",
+        });
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };  
 
     // Kontrola emailu
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
