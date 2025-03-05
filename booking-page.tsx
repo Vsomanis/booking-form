@@ -258,44 +258,50 @@ export default function BookingPage() {
     setApiError(null);
   
     try {
+      // Vytvoření požadavku podle struktury API
       const bookingData = {
         slot: {
           start: selectedTime.start,
-          end: selectedTime.end,
+          end: selectedTime.end
         },
         customerInfo: {
           name: customerInfo.name,
           email: customerInfo.email,
-          haircut: selectedHaircut.name,
-        },
+          haircut: selectedHaircut.name
+        }
       };
   
       console.log("Odesílám rezervaci:", bookingData);
   
+      // Odeslání rezervace na API
       const response = await bookAppointment(bookingData);
   
+      // ✅ Úspěšná rezervace
       alert(`Rezervace potvrzena na ${formatDateForDisplay(selectedDate!)} v ${formatTimeForDisplay(selectedTime.start)}`);
   
+      // ✅ Resetování formuláře
       setSelectedDate(null);
       setSelectedTime(null);
       setSelectedHaircut(null);
       setAvailableTimes([]);
       setCustomerInfo({ name: "", email: "" });
   
+      // ✅ Znovu načíst dostupné termíny po úspěšné rezervaci
       await fetchSlots();
       
     } catch (error: any) {
       console.error("Chyba při odesílání rezervace:", error);
   
-      if (error.response?.status === 429) {
+      // ✅ Nastavení chybové zprávy
+      if (error.message.includes("429")) {
         setApiError({
           status: 429,
-          message: "Příliš mnoho rezervací. Prosím, počkejte 60 minut a zkuste to znovu.",
+          message: "Příliš mnoho rezervací. Počkejte 1 hodinu a zkuste to znovu."
         });
       } else {
         setApiError({
-          status: error.response?.status || 0,
-          message: error.response?.data?.message || "Nepodařilo se odeslat rezervaci.",
+          status: 0,
+          message: `Chyba: ${error instanceof Error ? error.message : "Nepodařilo se odeslat rezervaci."}`
         });
       }
     } finally {
