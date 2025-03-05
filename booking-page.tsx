@@ -39,7 +39,8 @@ export const bookAppointment = async (data: any) => {
   });
 
   if (!response.ok) {
-    throw new Error("Chyba při rezervaci");
+    const errorData = await response.json(); // Zkusit načíst JSON s chybovou zprávou
+    throw { status: response.status, message: errorData.detail || "Chyba při rezervaci" };
   }
 
   return await response.json();
@@ -300,7 +301,7 @@ export default function BookingPage() {
       console.error("Chyba při odesílání rezervace:", error);
   
       // ✅ Nastavení chybové zprávy
-      if (error.message.includes("429")) {
+      if (error.status === 429) {
         setApiError({
           status: 429,
           message: "Příliš mnoho rezervací. Počkejte 1 hodinu a zkuste to znovu."
@@ -308,7 +309,7 @@ export default function BookingPage() {
       } else {
         setApiError({
           status: 0,
-          message: `Chyba: ${error instanceof Error ? error.message : "Nepodařilo se odeslat rezervaci."}`
+          message: `Chyba: ${error.message || "Nepodařilo se odeslat rezervaci."}`
         });
       }
     } finally {
@@ -326,8 +327,8 @@ export default function BookingPage() {
       {apiError && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
           <strong>Chyba: </strong> {apiError.message}
-          {apiError.status === 404 && (
-            <p className="mt-1">Dostupné termíny byly aktualizovány, vyberte prosím jiný čas.</p>
+          {apiError.status === 429 && (
+            <p className="mt-1">Příliš mnoho pokusů o rezervaci. Počkejte 1 hodinu a zkuste to znovu.</p>
           )}
         </div>
       )}
