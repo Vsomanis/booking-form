@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import { DateTime } from "luxon";
@@ -253,6 +253,13 @@ export default function BookingPage() {
       alert("Vyplňte všechna pole!");
       return;
     }
+
+    // Kontrola emailu
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(customerInfo.email)) {
+      alert("Zadejte platný email!");
+      return;
+    }
   
     setSubmitting(true);
     setApiError(null);
@@ -304,59 +311,6 @@ export default function BookingPage() {
           message: `Chyba: ${error instanceof Error ? error.message : "Nepodařilo se odeslat rezervaci."}`
         });
       }
-    } finally {
-      setSubmitting(false);
-    }
-  };  
-
-    // Kontrola emailu
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(customerInfo.email)) {
-      alert("Zadejte platný email!");
-      return;
-    }
-
-    setSubmitting(true);
-    setApiError(null);
-
-    try {
-      // Vytvoření požadavku podle struktury API
-      const bookingData = {
-        slot: {
-          start: selectedTime.start,
-          end: selectedTime.end
-        },
-        customerInfo: {
-          name: customerInfo.name,
-          email: customerInfo.email,
-          haircut: selectedHaircut.name
-        }
-      };
-
-      console.log("Odesílám rezervaci:", bookingData);
-
-      // Odeslání rezervace na API
-      const response = await bookAppointment(bookingData);
-
-      // Úspěšná rezervace
-      alert(`Rezervace potvrzena na ${formatDateForDisplay(selectedDate!)} v ${formatTimeForDisplay(selectedTime.start)}`);
-      
-      // Resetování formuláře
-      setSelectedDate(null);
-      setSelectedTime(null);
-      setSelectedHaircut(null);
-      setAvailableTimes([]);
-      setCustomerInfo({ name: "", email: "" });
-      
-      // Znovu načíst dostupné termíny po úspěšné rezervaci
-      await fetchSlots();
-      
-    } catch (error) {
-      console.error("Chyba při odesílání rezervace:", error);
-      setApiError({
-        status: 0,
-        message: `Chyba: ${error instanceof Error ? error.message : "Nepodařilo se odeslat rezervaci."}`
-      });
     } finally {
       setSubmitting(false);
     }
