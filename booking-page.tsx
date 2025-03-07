@@ -89,9 +89,6 @@ export default function BookingPage() {
   // Funkce pro načtení dostupných termínů
   const fetchSlots = useCallback(async () => {
     try {
-      setLoading(true);
-      setError(null);
-      
       const response = await fetch(`${API_URL}/`, {
         method: "GET",
         headers: {
@@ -148,15 +145,13 @@ export default function BookingPage() {
     } catch (error) {
       console.error("Chyba při načítání termínů:", error);
       setError("Nepodařilo se načíst dostupné termíny. Zkuste to znovu.");
-    } finally {
-      setLoading(false);
     }
   }, [fingerprint, selectedDate, selectedHaircut, selectedTime]);
 
   // Načtení termínů při prvním renderu
   useEffect(() => {
     if (fingerprint) {
-      fetchSlots();
+      fetchSlots().finally(() => setLoading(false));
     }
   }, [fingerprint, fetchSlots]);
 
@@ -216,6 +211,10 @@ export default function BookingPage() {
     setSelectedTime(null);
     setAvailableTimes([]);
     setApiError(null);
+    if (selectedHaircut) {
+      const times = generateAvailableTimes(selectedHaircut.duration);
+      setAvailableTimes(times);
+    }
   };
 
   // Generování dostupných časů na základě délky střihu s využitím Luxonu
@@ -344,7 +343,6 @@ export default function BookingPage() {
     <div className="container mx-auto p-4 max-w-2xl">
       <h1 className="text-2xl font-bold mb-6">Rezervace termínu</h1>
       
-      {loading && <p className="text-gray-600 mb-4">Načítání termínů...</p>}
       {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">{error}</div>}
       
       {apiError && (
@@ -371,6 +369,8 @@ export default function BookingPage() {
             locale="cs-CZ"
           />
         </section>
+
+        {loading && <p className="text-gray-600 mb-4">Načítání termínů...</p>}
 
         {selectedDate && (
           <section className="mb-6">
