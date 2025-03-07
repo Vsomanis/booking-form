@@ -60,6 +60,7 @@
     "vaul": "^0.9.6",
     "zod": "^3.24.1",
     "@types/react": "latest",
+    "@fingerprintjs/fingerprintjs": "^3.3.6",
     "react-calendar": "latest"
   },
   "devDependencies": {
