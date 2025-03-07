@@ -16,6 +16,15 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  async redirects() {
+    return [
+      {
+        source: "/blocked",
+        destination: "/blocked.html",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;
