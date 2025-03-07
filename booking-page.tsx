@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import { DateTime } from "luxon";
+import FingerprintJS from "@fingerprintjs/fingerprintjs";
 
 type Slot = {
   start: string;
@@ -28,12 +29,23 @@ type ApiError = {
 
 const API_URL = "https://booking-backend-eight.vercel.app";
 
+// Funkce pro získání fingerprintu
+async function getFingerprint() {
+  const fp = await FingerprintJS.load();
+  const result = await fp.get();
+  return result.visitorId;
+}
+
 export const bookAppointment = async (data: any) => {
+  // Získání fingerprintu z localStorage
+  const fingerprint = localStorage.getItem("fingerprint") || "";
+  
   const response = await fetch(`${API_URL}/book`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "X-API-KEY": process.env.NEXT_PUBLIC_API_SECRET_KEY, // API klíč z env proměnné
+      "Fingerprint": fingerprint, // Přidání fingerprintu do hlavičky
     },
     body: JSON.stringify(data),
   });
@@ -57,11 +69,20 @@ export default function BookingPage() {
   const [haircuts, setHaircuts] = useState<HaircutOption[]>([]);
   const [selectedHaircut, setSelectedHaircut] = useState<HaircutOption | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [fingerprint, setFingerprint] = useState("");
 
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo>({
     name: "",
     email: "",
   });
+
+  // Načtení fingerprintu při prvním renderu
+  useEffect(() => {
+    getFingerprint().then((fp) => {
+      setFingerprint(fp);
+      localStorage.setItem("fingerprint", fp); // Uložení fingerprintu do LocalStorage
+    });
+  }, []);
 
   // Funkce pro načtení dostupných termínů
   const fetchSlots = async () => {
