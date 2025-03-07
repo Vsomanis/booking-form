@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import { DateTime } from "luxon";
 import FingerprintJS from "@fingerprintjs/fingerprintjs";
+import { useForm } from "react-hook-form";
 
 type Slot = {
   start: string;
@@ -59,6 +60,7 @@ export const bookAppointment = async (data: any) => {
 };
 
 export default function BookingPage() {
+  const { register, handleSubmit, formState: { errors } } = useForm<CustomerInfo>();
   const [slots, setSlots] = useState<Slot[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -85,12 +87,17 @@ export default function BookingPage() {
   }, []);
 
   // Funkce pro načtení dostupných termínů
-  const fetchSlots = async () => {
+  const fetchSlots = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       
-      const response = await fetch(`${API_URL}/`);
+      const response = await fetch(`${API_URL}/`, {
+        method: "GET",
+        headers: {
+          "Fingerprint": fingerprint, // Posílání fingerprintu do backendu
+        },
+      });
       if (!response.ok) {
         throw new Error(`HTTP error ${response.status}`);
       }
@@ -144,12 +151,14 @@ export default function BookingPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [fingerprint, selectedDate, selectedHaircut, selectedTime]);
 
   // Načtení termínů při prvním renderu
   useEffect(() => {
-    fetchSlots();
-  }, []);
+    if (fingerprint) {
+      fetchSlots();
+    }
+  }, [fingerprint, fetchSlots]);
 
   // Načtení střihů při prvním renderu
   useEffect(() => {
@@ -181,7 +190,7 @@ export default function BookingPage() {
   };
 
   // Vytvoření setu dostupných datumů pro kalendář
-  const getAvailableDates = (): Set<string> => {
+  const getAvailableDates = useCallback((): Set<string> => {
     const dates = new Set<string>();
     
     slots.forEach(slot => {
@@ -190,9 +199,9 @@ export default function BookingPage() {
     });
     
     return dates;
-  };
+  }, [slots]);
 
-  const availableDates = getAvailableDates();
+  const availableDates = useMemo(() => getAvailableDates(), [getAvailableDates]);
 
   const handleDateChange = (date: Date) => {
     // Normalize date to midnight in local timezone using Luxon
@@ -210,7 +219,7 @@ export default function BookingPage() {
   };
 
   // Generování dostupných časů na základě délky střihu s využitím Luxonu
-  const generateAvailableTimes = (duration: number): Slot[] => {
+  const generateAvailableTimes = useCallback((duration: number): Slot[] => {
     if (!selectedDate) return [];
 
     // Get the date string in format yyyy-MM-dd
@@ -246,7 +255,7 @@ export default function BookingPage() {
     return available.sort((a, b) => 
       parseLocalDate(a.start).toMillis() - parseLocalDate(b.start).toMillis()
     );
-  };
+  }, [selectedDate, slots]);
 
   const handleHaircutChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const haircut = haircuts.find((h) => h.name === event.target.value) || null;
@@ -270,19 +279,12 @@ export default function BookingPage() {
     return DateTime.fromJSDate(date).toFormat("dd.MM.yyyy");
   };
 
-  const handleReservation = async () => {
-    if (!customerInfo.name || !customerInfo.email || !selectedHaircut || !selectedTime) {
+  const onSubmit = async (data: CustomerInfo) => {
+    if (!selectedHaircut || !selectedTime) {
       alert("Vyplňte všechna pole!");
       return;
     }
 
-    // Kontrola emailu
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(customerInfo.email)) {
-      alert("Zadejte platný email!");
-      return;
-    }
-  
     setSubmitting(true);
     setApiError(null);
   
@@ -294,8 +296,8 @@ export default function BookingPage() {
           end: selectedTime.end
         },
         customerInfo: {
-          name: customerInfo.name,
-          email: customerInfo.email,
+          name: data.name,
+          email: data.email,
           haircut: selectedHaircut.name
         }
       };
@@ -354,7 +356,7 @@ export default function BookingPage() {
         </div>
       )}
       
-      <form>
+      <form onSubmit={handleSubmit(onSubmit)}>
         <section className="mb-6">
           <h2 className="text-xl mb-2">Vyberte datum</h2>
           {selectedDate && (
@@ -421,49 +423,51 @@ export default function BookingPage() {
               <input 
                 type="text" 
                 className="w-full p-2 border rounded"
-                value={customerInfo.name}
-                onChange={(e) => setCustomerInfo({ ...customerInfo, name: e.target.value })}
+                {...register("name", { required: "Zadejte vaše jméno" })}
                 placeholder="Zadejte vaše jméno"
-                required
               />
-            </section>
+              , errors.name && <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>}
+                      </section>
 
-            <section className="mb-6">
-              <h2 className="text-xl mb-2">Váš email</h2>
-              <input 
-                type="email" 
-                className="w-full p-2 border rounded"
-                value={customerInfo.email}
-                onChange={(e) => setCustomerInfo({ ...customerInfo, email: e.target.value })}
-                placeholder="Zadejte váš email"
-                required
-              />
-            </section>
-
-            <div className="mt-6 mb-4 p-4 bg-blue-50 border border-blue-200 rounded">
-              <h3 className="font-semibold mb-2">Souhrn rezervace:</h3>
-              <p><strong>Datum:</strong> {formatDateForDisplay(selectedDate!)}</p>
-              <p><strong>Čas:</strong> {formatTimeForDisplay(selectedTime.start)}</p>
-              <p><strong>Střih:</strong> {selectedHaircut?.name}</p>
-            </div>
-
-            <div className="mt-4">
-              <button 
-                type="button" 
-                className={`w-full p-3 rounded text-white ${
-                  submitting 
-                    ? "bg-blue-300 cursor-not-allowed" 
-                    : "bg-blue-500 hover:bg-blue-600"
-                }`}
-                onClick={handleReservation}
-                disabled={submitting}
-              >
-                {submitting ? "Odesílání..." : "Zarezervovat"}
-              </button>
-            </div>
-          </>
-        )}
-      </form>
-    </div>
-  );
-}
+                      <section className="mb-6">
+                        <h2 className="text-xl mb-2">Váš email</h2>
+                        <input 
+                          type="email" 
+                          className="w-full p-2 border rounded"
+                          {...register("email", {
+                            required: "Zadejte váš email",
+                            pattern: {
+                              value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                              message: "Zadejte platný email",
+                            }
+                          })}
+                          placeholder="Zadejte váš email"
+                        />
+                        {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
+                      </section>
+              
+                      <div className="mt-6 mb-4 p-4 bg-blue-50 border border-blue-200 rounded">
+                        <h3 className="font-semibold mb-2">Souhrn rezervace:</h3>
+                        <p><strong>Datum:</strong> {formatDateForDisplay(selectedDate!)}</p>
+                        <p><strong>Čas:</strong> {formatTimeForDisplay(selectedTime.start)}</p>
+                        <p><strong>Střih:</strong> {selectedHaircut?.name}</p>
+                      </div>
+              
+                      <div className="mt-4">
+                        <button 
+                          type="submit"
+                          className={`w-full p-3 rounded text-white ${
+                            submitting 
+                              ? "bg-blue-300 cursor-not-allowed" 
+                              : "bg-blue-500 hover:bg-blue-600"
+                          }`}
+                          disabled={submitting}
+                        >
+                          {submitting ? "Odesílání..." : "Zarezervovat"}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </form>
+              </div>
+              
