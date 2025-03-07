@@ -416,58 +416,55 @@ export default function BookingPage() {
           </section>
         )}
 
-        {selectedTime && (
-          <>
-            <section className="mb-6">
-              <h2 className="text-xl mb-2">Vaše jméno</h2>
-              <input 
-                type="text" 
-                className="w-full p-2 border rounded"
-                {...register("name", { required: "Zadejte vaše jméno" })}
-                placeholder="Zadejte vaše jméno"
-              />
-              , errors.name && <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>}
-                      </section>
+        {{selectedTime && (
+  <>
+    <section className="mb-6">
+      <h2 className="text-xl mb-2">Vaše jméno</h2>
+      <input 
+        type="text" 
+        className="w-full p-2 border rounded"
+        {...register("name", { required: "Zadejte vaše jméno" })}
+        placeholder="Zadejte vaše jméno"
+      />
+      {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>}
+    </section>
 
-                      <section className="mb-6">
-                        <h2 className="text-xl mb-2">Váš email</h2>
-                        <input 
-                          type="email" 
-                          className="w-full p-2 border rounded"
-                          {...register("email", {
-                            required: "Zadejte váš email",
-                            pattern: {
-                              value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                              message: "Zadejte platný email",
-                            }
-                          })}
-                          placeholder="Zadejte váš email"
-                        />
-                        {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
-                      </section>
-              
-                      <div className="mt-6 mb-4 p-4 bg-blue-50 border border-blue-200 rounded">
-                        <h3 className="font-semibold mb-2">Souhrn rezervace:</h3>
-                        <p><strong>Datum:</strong> {formatDateForDisplay(selectedDate!)}</p>
-                        <p><strong>Čas:</strong> {formatTimeForDisplay(selectedTime.start)}</p>
-                        <p><strong>Střih:</strong> {selectedHaircut?.name}</p>
-                      </div>
-              
-                      <div className="mt-4">
-                        <button 
-                          type="submit"
-                          className={`w-full p-3 rounded text-white ${
-                            submitting 
-                              ? "bg-blue-300 cursor-not-allowed" 
-                              : "bg-blue-500 hover:bg-blue-600"
-                          }`}
-                          disabled={submitting}
-                        >
-                          {submitting ? "Odesílání..." : "Zarezervovat"}
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </form>
-              </div>
-              
+    <section className="mb-6">
+      <h2 className="text-xl mb-2">Váš email</h2>
+      <input 
+        type="email" 
+        className="w-full p-2 border rounded"
+        {...register("email", {
+          required: "Zadejte váš email",
+          pattern: {
+            value: /^[^\s@]+@[^\s@]+$/,
+            message: "Zadejte platný email",
+          }
+        })}
+        placeholder="Zadejte váš email"
+      />
+      {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
+    </section>
+
+    <div className="mt-6 mb-4 p-4 bg-blue-50 border border-blue-200 rounded">
+      <h3 className="font-semibold mb-2">Souhrn rezervace:</h3>
+      <p><strong>Datum:</strong> {formatDateForDisplay(selectedDate!)}</p>
+      <p><strong>Čas:</strong> {formatTimeForDisplay(selectedTime.start)}</p>
+      <p><strong>Střih:</strong> {selectedHaircut?.name}</p>
+    </div>
+
+    <div className="mt-4">
+      <button 
+        type="submit"
+        className={`w-full p-3 rounded text-white ${
+          submitting 
+            ? "bg-blue-300 cursor-not-allowed" 
+            : "bg-blue-500 hover:bg-blue-600"
+        }`}
+        disabled={submitting}
+      >
+        {submitting ? "Odesílání..." : "Zarezervovat"}
+      </button>
+    </div>
+  </>
+)}
