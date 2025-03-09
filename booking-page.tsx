@@ -38,21 +38,26 @@ async function getFingerprint() {
 }
 
 export const bookAppointment = async (data: any) => {
-  // Získání fingerprintu z localStorage
-  const fingerprint = localStorage.getItem("fingerprint") || "";
-  
+  let fingerprint = localStorage.getItem("fingerprint") || "";
+
+  // ✅ Pokud fingerprint není uložený, načteme ho znovu
+  if (!fingerprint) {
+    fingerprint = await getFingerprint();
+    localStorage.setItem("fingerprint", fingerprint);
+  }
+
   const response = await fetch(`${API_URL}/book`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-API-KEY": process.env.NEXT_PUBLIC_API_SECRET_KEY, // API klíč z env proměnné
-      "Fingerprint": fingerprint, // Přidání fingerprintu do hlavičky
+      "X-API-KEY": process.env.NEXT_PUBLIC_API_SECRET_KEY || "", // Oprava API klíče
+      "Fingerprint": fingerprint, // ✅ Fingerprint vždy přítomen
     },
     body: JSON.stringify(data),
   });
 
   if (!response.ok) {
-    const errorData = await response.json(); // Zkusit načíst JSON s chybovou zprávou
+    const errorData = await response.json();
     throw { status: response.status, message: errorData.detail || "Chyba při rezervaci" };
   }
 
@@ -71,7 +76,9 @@ export default function BookingPage() {
   const [haircuts, setHaircuts] = useState<HaircutOption[]>([]);
   const [selectedHaircut, setSelectedHaircut] = useState<HaircutOption | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [fingerprint, setFingerprint] = useState("");
+  
+  const [fingerprint, setFingerprint] = useState<string>("");
+  const [isFingerprintLoaded, setIsFingerprintLoaded] = useState(false); // ✅ Nový stav
 
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo>({
     name: "",
@@ -83,36 +90,40 @@ export default function BookingPage() {
     getFingerprint().then((fp) => {
       setFingerprint(fp);
       localStorage.setItem("fingerprint", fp); // Uložení fingerprintu do LocalStorage
+      setIsFingerprintLoaded(true); // ✅ Nastavení, že fingerprint je načten
     });
   }, []);
 
   // Funkce pro načtení dostupných termínů
   const fetchSlots = useCallback(async () => {
+    if (!fingerprint) return; // ✅ Nevolat request, pokud fingerprint není k dispozici
+
     try {
       const response = await fetch(`${API_URL}/`, {
         method: "GET",
         headers: {
-          "Fingerprint": fingerprint, // Posílání fingerprintu do backendu
+          "Fingerprint": fingerprint, // ✅ Fingerprint bude vždy dostupný
         },
       });
+
       if (!response.ok) {
         throw new Error(`HTTP error ${response.status}`);
       }
-      
+
       const data = await response.json();
       console.log("Načtené termíny z API:", data.terminy);
-      
+
       // Filtrování termínů od dnešního dne
       const today = DateTime.now().startOf('day');
-      
+
       const validSlots = data.terminy.filter((slot: Slot) => {
         // Parse date with timezone info preserved
         const slotDate = parseLocalDate(slot.start);
         return slotDate >= today;
       });
-      
+
       setSlots(validSlots);
-      
+
       // Resetování výběru, pokud se znovu načítají data
       if (selectedDate) {
         const stillValidDate = validSlots.some(slot => {
@@ -120,7 +131,7 @@ export default function BookingPage() {
           const selectedDateStr = DateTime.fromJSDate(selectedDate).toFormat("yyyy-MM-dd");
           return slotDateStr === selectedDateStr;
         });
-        
+
         if (!stillValidDate) {
           setSelectedDate(null);
           setSelectedTime(null);
@@ -129,13 +140,13 @@ export default function BookingPage() {
           // Aktualizace dostupných časů pro vybraný datum a střih
           const times = generateAvailableTimes(selectedHaircut.duration);
           setAvailableTimes(times);
-          
+
           // Kontrola, zda je vybraný čas stále dostupný
           if (selectedTime) {
             const timeStillAvailable = times.some(time => 
               time.start === selectedTime.start && time.end === selectedTime.end
             );
-            
+
             if (!timeStillAvailable) {
               setSelectedTime(null);
             }
@@ -148,12 +159,12 @@ export default function BookingPage() {
     }
   }, [fingerprint, selectedDate, selectedHaircut, selectedTime]);
 
-  // Načtení termínů při prvním renderu
+  // Načtení termínů až PO načtení fingerprintu
   useEffect(() => {
-    if (fingerprint) {
-      fetchSlots().finally(() => setLoading(false));
+    if (isFingerprintLoaded) {
+      fetchSlots().finally(() => setLoading(false)); // ✅ Bude čekat na načtení fingerprintu
     }
-  }, [fingerprint, fetchSlots]);
+  }, [isFingerprintLoaded, fetchSlots]);
 
   // Načtení střihů při prvním renderu
   useEffect(() => {
@@ -324,10 +335,7 @@ export default function BookingPage() {
   
       // ✅ Nastavení chybové zprávy
       if (error.status === 429) {
-        setApiError({
-          status: 429,
-          message: "Příliš mnoho rezervací. Počkejte 1 hodinu a zkuste to znovu."
-        });
+        window.location.href = "https://booking-form-snowy.vercel.app/blocked"; // Přesměrování uživatele
       } else {
         setApiError({
           status: 0,
