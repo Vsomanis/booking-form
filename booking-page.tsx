@@ -46,12 +46,14 @@ export const bookAppointment = async (data: any) => {
     localStorage.setItem("fingerprint", fingerprint);
   }
 
+  console.log("📡 Odesílám request s fingerprintem:", fingerprint);
+
   const response = await fetch(`${API_URL}/book`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-API-KEY": process.env.NEXT_PUBLIC_API_SECRET_KEY || "", // Oprava API klíče
-      "Fingerprint": fingerprint, // ✅ Fingerprint vždy přítomen
+      "X-API-KEY": process.env.NEXT_PUBLIC_API_SECRET_KEY || "",
+      "Fingerprint": fingerprint,
     },
     body: JSON.stringify(data),
   });
@@ -117,14 +119,12 @@ export default function BookingPage() {
       const today = DateTime.now().startOf('day');
 
       const validSlots = data.terminy.filter((slot: Slot) => {
-        // Parse date with timezone info preserved
         const slotDate = parseLocalDate(slot.start);
         return slotDate >= today;
       });
 
       setSlots(validSlots);
 
-      // Resetování výběru, pokud se znovu načítají data
       if (selectedDate) {
         const stillValidDate = validSlots.some(slot => {
           const slotDateStr = parseLocalDate(slot.start).toFormat("yyyy-MM-dd");
@@ -137,11 +137,9 @@ export default function BookingPage() {
           setSelectedTime(null);
           setAvailableTimes([]);
         } else if (selectedHaircut) {
-          // Aktualizace dostupných časů pro vybraný datum a střih
           const times = generateAvailableTimes(selectedHaircut.duration);
           setAvailableTimes(times);
 
-          // Kontrola, zda je vybraný čas stále dostupný
           if (selectedTime) {
             const timeStillAvailable = times.some(time => 
               time.start === selectedTime.start && time.end === selectedTime.end
@@ -184,18 +182,14 @@ export default function BookingPage() {
     fetchHaircuts();
   }, []);
   
-  // Pomocná funkce pro parsování lokálního data z ISO řetězce pomocí Luxonu
   const parseLocalDate = (isoString: string): DateTime => {
-    // Vytvoření DateTime objektu z ISO stringu s předpokladem, že čas je v pražské časové zóně
     return DateTime.fromISO(isoString, { zone: "Europe/Prague" });
   };
   
-  // Získání data bez času (pro porovnání dnů)
   const getDateString = (date: Date): string => {
     return DateTime.fromJSDate(date).toFormat("yyyy-MM-dd");
   };
 
-  // Vytvoření setu dostupných datumů pro kalendář
   const getAvailableDates = useCallback((): Set<string> => {
     const dates = new Set<string>();
     
@@ -210,7 +204,6 @@ export default function BookingPage() {
   const availableDates = useMemo(() => getAvailableDates(), [getAvailableDates]);
 
   const handleDateChange = (date: Date) => {
-    // Normalize date to midnight in local timezone using Luxon
     const normalizedDate = DateTime.fromJSDate(date).startOf('day').toJSDate();
     
     const dateString = getDateString(normalizedDate);
@@ -228,14 +221,11 @@ export default function BookingPage() {
     }
   };
 
-  // Generování dostupných časů na základě délky střihu s využitím Luxonu
   const generateAvailableTimes = useCallback((duration: number): Slot[] => {
     if (!selectedDate) return [];
 
-    // Get the date string in format yyyy-MM-dd
     const selectedDateStr = getDateString(selectedDate);
     
-    // Filtrace slotů pro vybraný den
     const daySlots = slots.filter(slot => {
       const slotDate = parseLocalDate(slot.start);
       return slotDate.toFormat("yyyy-MM-dd") === selectedDateStr;
@@ -256,12 +246,10 @@ export default function BookingPage() {
           event_id: slot.event_id
         });
 
-        // Posun o 30 minut
         startTime = startTime.plus({ minutes: 30 });
       }
     });
 
-    // Seřadit dostupné časy
     return available.sort((a, b) => 
       parseLocalDate(a.start).toMillis() - parseLocalDate(b.start).toMillis()
     );
@@ -279,12 +267,10 @@ export default function BookingPage() {
     }
   };
 
-  // Formátování času pro zobrazení v Europe/Prague pomocí Luxonu
   const formatTimeForDisplay = (isoString: string): string => {
     return parseLocalDate(isoString).toFormat("HH:mm");
   };
 
-  // Formátování data pro zobrazení
   const formatDateForDisplay = (date: Date): string => {
     return DateTime.fromJSDate(date).toFormat("dd.MM.yyyy");
   };
@@ -299,7 +285,6 @@ export default function BookingPage() {
     setApiError(null);
   
     try {
-      // Vytvoření požadavku podle struktury API
       const bookingData = {
         slot: {
           start: selectedTime.start,
@@ -314,28 +299,23 @@ export default function BookingPage() {
   
       console.log("Odesílám rezervaci:", bookingData);
   
-      // Odeslání rezervace na API
       const response = await bookAppointment(bookingData);
   
-      // ✅ Úspěšná rezervace
       alert(`Rezervace potvrzena na ${formatDateForDisplay(selectedDate!)} v ${formatTimeForDisplay(selectedTime.start)}`);
   
-      // ✅ Resetování formuláře
       setSelectedDate(null);
       setSelectedTime(null);
       setSelectedHaircut(null);
       setAvailableTimes([]);
       setCustomerInfo({ name: "", email: "" });
   
-      // ✅ Znovu načíst dostupné termíny po úspěšné rezervaci
       await fetchSlots();
       
     } catch (error: any) {
       console.error("Chyba při odesílání rezervace:", error);
   
-      // ✅ Nastavení chybové zprávy
       if (error.status === 429) {
-        window.location.href = "https://booking-form-snowy.vercel.app/blocked"; // Přesměrování uživatele
+        window.location.href = "https://booking-form-snowy.vercel.app/blocked";
       } else {
         setApiError({
           status: 0,
