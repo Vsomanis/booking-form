@@ -89,16 +89,30 @@ export default function BookingPage() {
 
   // Načtení fingerprintu při prvním renderu
   useEffect(() => {
-    getFingerprint().then((fp) => {
-      setFingerprint(fp);
-      localStorage.setItem("fingerprint", fp); // Uložení fingerprintu do LocalStorage
-      setIsFingerprintLoaded(true); // ✅ Nastavení, že fingerprint je načten
-    });
+    const savedFingerprint = localStorage.getItem("fingerprint");
+
+    if (savedFingerprint) {
+      console.log("🆗 Načítám fingerprint z LocalStorage:", savedFingerprint);
+      setFingerprint(savedFingerprint);
+      setIsFingerprintLoaded(true);
+    } else {
+      getFingerprint().then((fp) => {
+        console.log("🆕 Nový fingerprint získán:", fp);
+        setFingerprint(fp);
+        localStorage.setItem("fingerprint", fp);
+        setIsFingerprintLoaded(true);
+      });
+    }
   }, []);
 
   // Funkce pro načtení dostupných termínů
   const fetchSlots = useCallback(async () => {
-    if (!fingerprint) return; // ✅ Nevolat request, pokud fingerprint není k dispozici
+    if (!fingerprint) {
+      console.warn("❌ Fingerprint není dostupný, request se neodešle.");
+      return;
+    }
+
+    console.log("📡 Načítám termíny s fingerprintem:", fingerprint); // ✅ Logování pro ověření
 
     try {
       const response = await fetch(`${API_URL}/`, {
@@ -113,7 +127,7 @@ export default function BookingPage() {
       }
 
       const data = await response.json();
-      console.log("Načtené termíny z API:", data.terminy);
+      console.log("✅ Načtené termíny:", data.terminy);
 
       // Filtrování termínů od dnešního dne
       const today = DateTime.now().startOf('day');
@@ -152,17 +166,17 @@ export default function BookingPage() {
         }
       }
     } catch (error) {
-      console.error("Chyba při načítání termínů:", error);
+      console.error("❌ Chyba při načítání termínů:", error);
       setError("Nepodařilo se načíst dostupné termíny. Zkuste to znovu.");
     }
   }, [fingerprint, selectedDate, selectedHaircut, selectedTime]);
 
   // Načtení termínů až PO načtení fingerprintu
   useEffect(() => {
-    if (isFingerprintLoaded) {
+    if (isFingerprintLoaded && slots.length === 0) { // ✅ Ověříme, že ještě nemáme sloty
       fetchSlots().finally(() => setLoading(false)); // ✅ Bude čekat na načtení fingerprintu
     }
-  }, [isFingerprintLoaded, fetchSlots]);
+  }, [isFingerprintLoaded, fetchSlots, slots.length]); // ✅ Přidáme slots.length jako závislost
 
   // Načtení střihů při prvním renderu
   useEffect(() => {
