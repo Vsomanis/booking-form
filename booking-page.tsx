@@ -106,70 +106,76 @@ export default function BookingPage() {
   }, []);
 
   // Funkce pro načtení dostupných termínů
-  const fetchSlots = useCallback(async () => {
-    if (!fingerprint) {
-      console.warn("❌ Fingerprint není dostupný, request se neodešle.");
+const fetchSlots = useCallback(async () => {
+  if (!fingerprint) {
+    console.warn("❌ Fingerprint není dostupný, request se neodešle.");
+    return;
+  }
+
+  console.log("📡 Načítám termíny s fingerprintem:", fingerprint); // ✅ Logování pro ověření
+
+  try {
+    const response = await fetch(`${API_URL}/`, {
+      method: "GET",
+      headers: {
+        "Fingerprint": fingerprint, // ✅ Fingerprint bude vždy dostupný
+      },
+    });
+
+    if (response.status === 429) {
+      console.error("🚨 Uživateli byl odepřen přístup kvůli rate-limitu! Přesměrování...");
+      window.location.href = "https://booking-form-snowy.vercel.app/blocked";
       return;
     }
 
-    console.log("📡 Načítám termíny s fingerprintem:", fingerprint); // ✅ Logování pro ověření
+    if (!response.ok) {
+      throw new Error(`HTTP error ${response.status}`);
+    }
 
-    try {
-      const response = await fetch(`${API_URL}/`, {
-        method: "GET",
-        headers: {
-          "Fingerprint": fingerprint, // ✅ Fingerprint bude vždy dostupný
-        },
+    const data = await response.json();
+    console.log("✅ Načtené termíny:", data.terminy);
+
+    // Filtrování termínů od dnešního dne
+    const today = DateTime.now().startOf('day');
+
+    const validSlots = data.terminy.filter((slot: Slot) => {
+      const slotDate = parseLocalDate(slot.start);
+      return slotDate >= today;
+    });
+
+    setSlots(validSlots);
+
+    if (selectedDate) {
+      const stillValidDate = validSlots.some(slot => {
+        const slotDateStr = parseLocalDate(slot.start).toFormat("yyyy-MM-dd");
+        const selectedDateStr = DateTime.fromJSDate(selectedDate).toFormat("yyyy-MM-dd");
+        return slotDateStr === selectedDateStr;
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error ${response.status}`);
-      }
+      if (!stillValidDate) {
+        setSelectedDate(null);
+        setSelectedTime(null);
+        setAvailableTimes([]);
+      } else if (selectedHaircut) {
+        const times = generateAvailableTimes(selectedHaircut.duration);
+        setAvailableTimes(times);
 
-      const data = await response.json();
-      console.log("✅ Načtené termíny:", data.terminy);
+        if (selectedTime) {
+          const timeStillAvailable = times.some(time => 
+            time.start === selectedTime.start && time.end === selectedTime.end
+          );
 
-      // Filtrování termínů od dnešního dne
-      const today = DateTime.now().startOf('day');
-
-      const validSlots = data.terminy.filter((slot: Slot) => {
-        const slotDate = parseLocalDate(slot.start);
-        return slotDate >= today;
-      });
-
-      setSlots(validSlots);
-
-      if (selectedDate) {
-        const stillValidDate = validSlots.some(slot => {
-          const slotDateStr = parseLocalDate(slot.start).toFormat("yyyy-MM-dd");
-          const selectedDateStr = DateTime.fromJSDate(selectedDate).toFormat("yyyy-MM-dd");
-          return slotDateStr === selectedDateStr;
-        });
-
-        if (!stillValidDate) {
-          setSelectedDate(null);
-          setSelectedTime(null);
-          setAvailableTimes([]);
-        } else if (selectedHaircut) {
-          const times = generateAvailableTimes(selectedHaircut.duration);
-          setAvailableTimes(times);
-
-          if (selectedTime) {
-            const timeStillAvailable = times.some(time => 
-              time.start === selectedTime.start && time.end === selectedTime.end
-            );
-
-            if (!timeStillAvailable) {
-              setSelectedTime(null);
-            }
+          if (!timeStillAvailable) {
+            setSelectedTime(null);
           }
         }
       }
-    } catch (error) {
-      console.error("❌ Chyba při načítání termínů:", error);
-      setError("Nepodařilo se načíst dostupné termíny. Zkuste to znovu.");
     }
-  }, [fingerprint, selectedDate, selectedHaircut, selectedTime]);
+  } catch (error) {
+    console.error("❌ Chyba při načítání termínů:", error);
+    setError("Nepodařilo se načíst dostupné termíny. Zkuste to znovu.");
+  }
+}, [fingerprint, selectedDate, selectedHaircut, selectedTime]);
 
   // Načtení termínů až PO načtení fingerprintu
   useEffect(() => {
