@@ -320,22 +320,16 @@ const fetchSlots = useCallback(async () => {
       console.log("Odesílám rezervaci:", bookingData);
   
       const response = await bookAppointment(bookingData);
-  
-      alert(`Rezervace potvrzena na ${formatDateForDisplay(selectedDate!)} v ${formatTimeForDisplay(selectedTime.start)}`);
-  
-      setSelectedDate(null);
-      setSelectedTime(null);
-      setSelectedHaircut(null);
-      setAvailableTimes([]);
-      setCustomerInfo({ name: "", email: "" });
-  
-      await fetchSlots();
-      
+
+      console.log("✅ Rezervace úspěšná:", response);
+
+      // Redirect na stránku úspěšné rezervace
+      window.location.href = "/uspesnarezervace";
     } catch (error: any) {
-      console.error("Chyba při odesílání rezervace:", error);
-  
+      console.error("❌ Chyba při odesílání rezervace:", error);
+
       if (error.status === 429) {
-        window.location.href = "https://booking-form-snowy.vercel.app/blocked";
+        window.location.href = "/blocked";
       } else {
         setApiError({
           status: 0,

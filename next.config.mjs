@@ -23,6 +23,11 @@ const nextConfig = {
         destination: "/blocked.html",
         permanent: true,
       },
+      {
+        source: "/uspesnarezervace",
+        destination: "/uspesnarezervace.html",
+        permanent: true,
+      },
     ];
   },
 };
