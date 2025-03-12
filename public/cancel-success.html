@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rezervace zrušena</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #2e1a1a, #4e1616);
+            font-family: Arial, sans-serif;
+            color: #fff;
+            text-align: center;
+        }
+        .container {
+            max-width: 500px;
+            padding: 20px;
+            background: rgba(255, 77, 77, 0.1);
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+        h1 {
+            font-size: 2rem;
+            color: #ff4d4d;
+        }
+        p {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+        }
+        .cancel-icon {
+            font-size: 50px;
+            color: #ff4d4d;
+        }
+        button {
+            background: #ff4d4d;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        button:hover {
+            background: #d43f3f;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="cancel-icon">❌</div>
+        <h1>Rezervace byla zrušena</h1>
+        <p>Tvoje rezervace byla úspěšně zrušena.</p>
+        <p>Pokud chceš vytvořit novou, klikni níže.</p>
+        <button onclick="window.location.href='/'">Zpět na rezervaci</button>
+    </div>
+</body>
+</html>

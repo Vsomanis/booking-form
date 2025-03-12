@@ -28,6 +28,11 @@ const nextConfig = {
         destination: "/uspesnarezervace.html",
         permanent: true,
       },
+      {
+        source: "/cancel-success",
+        destination: "/cancel-success.html",
+        permanent: true,
+      },
     ];
   },
 };
