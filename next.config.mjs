@@ -33,6 +33,16 @@ const nextConfig = {
         destination: "/cancel-success.html",
         permanent: true,
       },
+      {
+        source: "/cancel-already",
+        destination: "/cancel-already.html",
+        permanent: true,
+      },
+      {
+        source: "/cancel-error",
+        destination: "/cancel-error.html",
+        permanent: true,
+      },
     ];
   },
 };
